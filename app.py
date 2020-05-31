@@ -91,12 +91,12 @@ class YoutubeBot:
             "//div[@id='top-level-buttons']/ytd-button-renderer[2]")
         playlist_button.click()  # opens popup with playlists
 
-        sleep(0.75)  # waits so all elements in popup are properly loaded
+        sleep(1)  # waits so all elements in popup are properly loaded
 
         playlists = self.driver.find_elements_by_xpath(
             "//div[@id='playlists']/ytd-playlist-add-to-option-renderer/paper-checkbox/div[@id = 'checkboxLabel']/div/div[@id='checkbox-label']/yt-formatted-string[@id='label']")
         # extracting titles from webelements
-        playlist_titles = [p.text.lower() for p in playlists]
+        playlist_titles = [p.text for p in playlists]
 
         if self.playlist_name in playlist_titles:    # if playlist exists
             # index of specified playlist in the list
