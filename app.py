@@ -1,144 +1,73 @@
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from secrets import GOOGLE_EMAIL, PASSWORD
-from time import sleep
+import tkinter as tk
+from bot import YoutubeBot
 
+LABEL_FONT = ("Helvetica", 14)
+ENTRY_FONT = ("Helvetica", 13)
 
-class YoutubeBot:
+class App:
     def __init__(self):
-        self.driver = webdriver.Opera()  # change driver if you use different browser
-        self.driver.get('https://www.youtube.com')
-        self.url = self.driver.current_url
+        self.main()
 
-        self.artists_to_search, self.playlist_name = self.get_data()
-        self.youtube_login()
+    def main(self):
+        """ Builds application window. """
+        window = tk.Tk()
+        window.title('Youtube Bot')
+        window.geometry('400x300')
+        window.resizable(False, False)
 
-        sleep(20)  # thread waits with another actions for user to change the URL
-        while True:
-            # checking if URL has changed (new song is played)
-            sleep(1)
-            if self.url != self.driver.current_url:
-                self.url = self.driver.current_url
-                sleep(1)
-                if self.song_matches():
-                    self.add_to_playlist()
+        frame = tk.Frame(window,width=100)
+        frame.grid(column=0)
 
-    def get_data(self):
-        '''Function executed right after loading the YouTube window and before 
-        logging into account. User provides name of the artist and playlist in which
-        given artist's song should be saved.'''
+        artist_label = tk.Label(window, text = 'Search for:', font = LABEL_FONT)
+        artist_label.grid(row=0, column=1)
+        self.artists_entry = tk.Entry(window,font = ENTRY_FONT)
+        self.artists_entry.grid(row=1, column=1)
 
-        artists = input(
-            'Artist/s to be searched (separated by comma): ').split(',')
-        playlist = input(
-            "Playlist name (will be created if doesn't exist): ")
-        print('Logging in...')
-        return (artists, playlist)
+        playlist_name_label = tk.Label(window, text = 'Playlist name:', font = LABEL_FONT)
+        playlist_name_label.grid(row=2, column=1)
+        self.playlist_name_entry = tk.Entry(window,font = ENTRY_FONT)
+        self.playlist_name_entry.grid(row=3, column=1)
 
-    def youtube_login(self):
-        '''Automates proccess of logging into youtube account using data provided in secrets.py file.
-        After succesful signing in, user has to manually play a song. '''
+        redirect_label = tk.Label(window, text = 'Link to redirect:', font=LABEL_FONT)
+        redirect_label.grid(row=4, column=1)
+        self.link_entry = tk.Entry(window,font=ENTRY_FONT)
+        self.link_entry.grid(row=5, column=1)
 
-        # css selector of 'SIGN IN' button on the main youtube page
-        sign_in_button = '#buttons.ytd-masthead > *.ytd-masthead'
-        WebDriverWait(self.driver, 20).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, sign_in_button))).click()  # waits with clicking for website to fully load
+        global var
+        var = tk.IntVar()
+        var.set(0)
 
-        # entry for google e-mail
-        login_entry = self.driver.find_element_by_css_selector(
-            'div.Xb9hP > input')
-        login_entry.send_keys(GOOGLE_EMAIL)
+        MODES = [('Public playlist', 0),
+                ('Private playlist', 1)]
 
-        # confirm button
-        ok_login = self.driver.find_element_by_id('identifierNext')
-        ok_login.click()
+        for text, mode in MODES:
+            radiobutton = tk.Radiobutton(window, text=text, variable = var, value=mode,
+                            font = ('Helvetica', 13))
+            radiobutton.grid(row=mode+6, column=1)
 
-        sleep(2)
+        self.confirm_button = tk.Button(window, text = "Let's go", font = ('Helvetica', 13), command = self.start_program)
+        self.confirm_button.grid(row=8, column=1)
 
-        # entry for google account password
-        password_entry = self.driver.find_element_by_css_selector(
-            'input.whsOnd.zHQkBf')
-        password_entry.send_keys(PASSWORD)
+        window.mainloop()
 
-        # confirm button
-        ok_password = self.driver.find_element_by_id('passwordNext')
-        ok_password.click()
+    def data_correct(self,artists, playlist):
+        """ Checks if provided data is valid (not empty). """
+        return len(artists)>0 and len(playlist)>0
 
-    def song_matches(self):
-        '''Checks if currently played song belongs to given author, 
-        based on video title and description. Returns bool.'''
+    def start_program(self):
+        """ Creates the instance of the Bot and runs the program. """
 
-        video_title = self.driver.find_element_by_css_selector(
-            'h1.title.style-scope.ytd-video-primary-info-renderer').text.lower()
-        video_description = self.driver.find_element_by_xpath(
-            "//div[@id='content']/div[@id='description']/yt-formatted-string").text.lower()
+        artists = list(filter(None, self.artists_entry.get().strip().split(',')))
+        playlist_name = self.playlist_name_entry.get()
+        url = self.link_entry.get()
+        bot = YoutubeBot(artists, playlist_name, var.get(), url)
 
-        artists_in_title, artists_in_description = False, False
-        for artist in self.artists_to_search:
-            if artist in video_title:
-                artists_in_title = True
-            if artist in video_description:
-                artists_in_description = True
+        if self.data_correct(artists, playlist_name):
+            bot.run()
+            self.confirm_button.config(state='disabled')
+        else:
+            print('No fields can remain empty')
+          
 
-        return (artists_in_title or artists_in_description)
-
-    def add_to_playlist(self):
-        sleep(1)
-        playlist_button = self.driver.find_element_by_xpath(
-            "//div[@id='top-level-buttons']/ytd-button-renderer[2]")
-        playlist_button.click()  # opens popup with playlists
-
-        sleep(1)  # waits so all elements in popup are properly loaded
-
-        playlists = self.driver.find_elements_by_xpath(
-            "//div[@id='playlists']/ytd-playlist-add-to-option-renderer/paper-checkbox/div[@id = 'checkboxLabel']/div/div[@id='checkbox-label']/yt-formatted-string[@id='label']")
-        # extracting titles from webelements
-        playlist_titles = [p.text for p in playlists]
-
-        if self.playlist_name in playlist_titles:    # if playlist exists
-            # index of specified playlist in the list
-            index = playlist_titles.index(self.playlist_name)
-
-            xpath = f"//div[@id='playlists']/ytd-playlist-add-to-option-renderer[{index+1}]/paper-checkbox/div[@id ='checkboxContainer']"
-
-            add_button = self.driver.find_element_by_xpath(xpath)
-
-            # child element having a 'checked' class if button is clicked to ensure that song won't be deleted from playlist
-            checkbox = self.driver.find_element_by_xpath(
-                f"{xpath}/div[@id='checkbox']")
-
-            # if song is not in the playlist
-            if not 'checked' in checkbox.get_attribute('class'):
-                add_button.click()
-            self.close_window(add_button)
-        else:                               # if playlist doesn't exist
-            self.create_playlist()
-
-    def close_window(self, element):
-        '''Closes popup after succesfully adding a song to playlist.'''
-        action = ActionChains(self.driver)
-        action.move_to_element_with_offset(
-            element, -50, 0)  # moves cursor 50px to the left
-        action.click()
-        action.perform()
-
-    def create_playlist(self):
-        '''Creates new playlist if there hadn't existed playlist with given name. '''
-        new_playlist_button = self.driver.find_element_by_xpath(
-            "//div[@id='actions']/ytd-add-to-playlist-create-renderer")
-        new_playlist_button.click()
-
-        name_input = self.driver.find_element_by_xpath(
-            "//div[@id='labelAndInputContainer']/iron-input/input")
-        name_input.send_keys(self.playlist_name)
-
-        submit_button = self.driver.find_element_by_xpath(
-            "//div[@id='actions']/ytd-button-renderer/a/paper-button[@id='button']")
-        submit_button.click()
-
-
-if __name__ == '__main__':
-    bot = YoutubeBot()
+if __name__=='__main__':
+    App()
