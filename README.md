@@ -7,4 +7,10 @@
 
 
 ## ABOUT PROJECT AND HOW IT WORKS 
-After launching the project, chosen browser will open on YouTube main page (www.youtube.com). Then you'll be asked to provide artists you want the Bot to search for (in video title and descriptions) and name of playlist in which the videos will be saved. Having done that, the bot will automatically sign into your youtube account with data provided in secrets.py file. Selenium browsers are not perfect, so after succesful login you may be redirected either to main youtube page or studio.youtube.com (what happened in my case). Then you need to paste the link of whatever song you wish in the browser and that's basically everything you had to do. Since now, the bot checks if song belongs to artists you provided in the second step and if so, adds songs to the playlist.
+After launching the project, you will see the window, where you are asked to fill all important data, such as: 
+- names/nicknames of artists that you want to search for, separated by comma
+- link to redirect after closing this window. If you leave this input empty, the main Youtube page will be loaded.
+- name of playlist, that you want to store songs in. If the playlist with the given name does not exist, it will be created 
+- accesibility of playlist - determines whether the playlist should be public or private. Works only if playlist doesn't already exist (does not modify accesibility of already created playlists)
+
+Having filled all the forms, the bot will automatically log in to your account, and redirect to the provided link/youtube.com. Autoplay is highly recommended to be active, since you won't have to do anything.
